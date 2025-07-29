@@ -26,8 +26,15 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const { email, password } = req.body;
   try {
+    console.log('Tentativa de login com:', { email });
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user) {
+      console.log('Usuário não encontrado:', email);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.log('Senha inválida para:', email);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
     const token = jwt.sign({ userId: user.id, tenantId: user.tenantId }, process.env.JWT_SECRET, { expiresIn: '1h' });
