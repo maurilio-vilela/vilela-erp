@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Rotas
 app.use('/auth', authRoutes);
+app.use('/admin', adminRoutes);
 
 // Middleware de erro global
 app.use((err, req, res, next) => {
