@@ -18,7 +18,8 @@ const register = async (req, res) => {
     await createTenantSchema(tenant.id, tenant.cnpj);
     res.status(201).json({ user, tenant });
   } catch (error) {
-    res.status(400).json({ error: 'Erro ao criar usuário/tenant' });
+    console.error('Erro no registro:', error);
+    res.status(400).json({ error: `Erro ao criar usuário/tenant: ${error.message}` });
   }
 };
 
@@ -32,6 +33,7 @@ const login = async (req, res) => {
     const token = jwt.sign({ userId: user.id, tenantId: user.tenantId }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   } catch (error) {
+    console.error('Erro no login:', error);
     res.status(500).json({ error: 'Erro ao fazer login' });
   }
 };
@@ -41,6 +43,7 @@ const listUsers = async (req, res) => {
     const users = await prisma.user.findMany({ where: { tenantId: req.user.tenantId } });
     res.json(users);
   } catch (error) {
+    console.error('Erro ao listar usuários:', error);
     res.status(500).json({ error: 'Erro ao listar usuários' });
   }
 };

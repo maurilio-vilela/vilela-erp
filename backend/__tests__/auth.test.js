@@ -10,19 +10,24 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 
 describe('POST /auth/login', () => {
+  let tenantId;
+
   beforeAll(async () => {
-    // Criar usuário de teste
-    const hashedPassword = await bcrypt.hash('123456', 10);
-    await prisma.tenant.create({
+    // Criar tenant e capturar o ID
+    const tenant = await prisma.tenant.create({
       data: { name: 'Test Tenant', cnpj: '12345678901234', plan: 'basic' },
     });
+    tenantId = tenant.id;
+
+    // Criar usuário associado ao tenant
+    const hashedPassword = await bcrypt.hash('123456', 10);
     await prisma.user.create({
       data: {
         name: 'Test User',
         email: 'test@vilela.com',
         password: hashedPassword,
         role: 'admin',
-        tenantId: 1,
+        tenantId: tenantId,
       },
     });
   });

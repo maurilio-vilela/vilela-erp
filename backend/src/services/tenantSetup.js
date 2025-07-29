@@ -1,7 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
 const { Client } = require('pg');
-
-const prisma = new PrismaClient();
 
 async function createTenantSchema(tenantId, tenantCnpj) {
   const client = new Client({
@@ -15,6 +12,7 @@ async function createTenantSchema(tenantId, tenantCnpj) {
     console.log(`Schema ${schemaName} criado com sucesso.`);
   } catch (error) {
     console.error('Erro ao criar schema:', error);
+    throw new Error(`Falha ao criar schema para tenant ${tenantId}: ${error.message}`);
   } finally {
     await client.end();
   }
