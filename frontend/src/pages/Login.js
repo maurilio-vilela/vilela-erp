@@ -17,6 +17,7 @@ const Login = () => {
       dispatch(setUser({ token: response.data.token }));
       window.location.href = '/dashboard';
     } catch (err) {
+      console.error('Erro no login:', err);
       setError('Credenciais inválidas');
     }
   };

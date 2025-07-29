@@ -29,6 +29,7 @@ const Register = () => {
       setCnpj('');
       setTenantName('');
     } catch (err) {
+      console.error('Erro no registro:', err);
       setError('Erro ao criar usuário/tenant');
       setSuccess('');
     }
