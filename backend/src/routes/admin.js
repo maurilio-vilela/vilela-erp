@@ -1,28 +1,54 @@
 const express = require('express');
-const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const verifyToken = require('../middleware/auth');
+const router = express.Router();
 
 router.use(verifyToken);
 
-// Criar uma pessoa
 router.post('/persons', async (req, res) => {
-  const {
-    type, isClient, isSupplier, isEmployee, name, surname, cpfCnpj, birthDate, gender,
-    email, phone, addressCep, addressStreet, addressNumber, addressComplement,
-    addressNeighborhood, addressCity, addressState, addressCountry, bankDetails,
-    observations, attachment,
-  } = req.body;
-
+  let tenantPrisma;
   try {
     const schemaName = `tenant_${req.user.tenantId}_${req.user.cnpj.replace(/[^0-9]/g, '')}`;
-    console.log(`Usando schema: ${schemaName}`);
-
-    const tenantPrisma = new PrismaClient({
+    tenantPrisma = new PrismaClient({
       datasources: { db: { url: `${process.env.DATABASE_URL}&schema=${schemaName}` } },
     });
 
+    let data = req.body;
+    if (req.body.data) {
+      data = JSON.parse(req.body.data);
+    }
+
+    const {
+      type,
+      isClient = false,
+      isSupplier = false,
+      isEmployee = false,
+      name,
+      surname,
+      cpfCnpj,
+      birthDate,
+      gender,
+      email,
+      phone,
+      addressCep,
+      addressStreet,
+      addressNumber,
+      addressComplement,
+      addressNeighborhood,
+      addressCity,
+      addressState,
+      addressCountry = 'Brasil',
+      bankDetails,
+      observations,
+      attachment
+    } = data;
+
+    if (!type || !name || !cpfCnpj) {
+      return res.status(400).json({ error: 'Campos obrigatórios: type, name, cpfCnpj' });
+    }
+
     const age = birthDate ? Math.floor((new Date() - new Date(birthDate)) / (1000 * 60 * 60 * 24 * 365)) : null;
+
     const person = await tenantPrisma.person.create({
       data: {
         type,
@@ -45,62 +71,87 @@ router.post('/persons', async (req, res) => {
         addressCity,
         addressState,
         addressCountry,
-        bankDetails,
+        bankDetails: bankDetails ? JSON.parse(bankDetails) : null,
         observations,
-        attachment,
+        attachment: req.files?.attachment ? req.files.attachment[0].path : null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
 
-    await tenantPrisma.$disconnect();
     res.status(201).json(person);
   } catch (error) {
     console.error('Erro ao criar pessoa:', error);
     res.status(400).json({ error: `Erro ao criar pessoa: ${error.message}` });
+  } finally {
+    if (tenantPrisma) {
+      await tenantPrisma.$disconnect();
+    }
   }
 });
 
-// Listar pessoas
 router.get('/persons', async (req, res) => {
+  let tenantPrisma;
   try {
     const schemaName = `tenant_${req.user.tenantId}_${req.user.cnpj.replace(/[^0-9]/g, '')}`;
-    console.log(`Usando schema: ${schemaName}`);
-
-    const tenantPrisma = new PrismaClient({
+    tenantPrisma = new PrismaClient({
       datasources: { db: { url: `${process.env.DATABASE_URL}&schema=${schemaName}` } },
     });
 
     const persons = await tenantPrisma.person.findMany();
-    await tenantPrisma.$disconnect();
     res.json(persons);
   } catch (error) {
     console.error('Erro ao listar pessoas:', error);
     res.status(500).json({ error: 'Erro ao listar pessoas' });
+  } finally {
+    if (tenantPrisma) {
+      await tenantPrisma.$disconnect();
+    }
   }
 });
 
-// Atualizar uma pessoa
 router.put('/persons/:id', async (req, res) => {
-  const { id } = req.params;
-  const {
-    type, isClient, isSupplier, isEmployee, name, surname, cpfCnpj, birthDate, gender,
-    email, phone, addressCep, addressStreet, addressNumber, addressComplement,
-    addressNeighborhood, addressCity, addressState, addressCountry, bankDetails,
-    observations, attachment,
-  } = req.body;
-
+  let tenantPrisma;
   try {
     const schemaName = `tenant_${req.user.tenantId}_${req.user.cnpj.replace(/[^0-9]/g, '')}`;
-    console.log(`Usando schema: ${schemaName}`);
-
-    const tenantPrisma = new PrismaClient({
+    tenantPrisma = new PrismaClient({
       datasources: { db: { url: `${process.env.DATABASE_URL}&schema=${schemaName}` } },
     });
 
+    let data = req.body;
+    if (req.body.data) {
+      data = JSON.parse(req.body.data);
+    }
+
+    const {
+      type,
+      isClient,
+      isSupplier,
+      isEmployee,
+      name,
+      surname,
+      cpfCnpj,
+      birthDate,
+      gender,
+      email,
+      phone,
+      addressCep,
+      addressStreet,
+      addressNumber,
+      addressComplement,
+      addressNeighborhood,
+      addressCity,
+      addressState,
+      addressCountry,
+      bankDetails,
+      observations,
+      attachment
+    } = data;
+
     const age = birthDate ? Math.floor((new Date() - new Date(birthDate)) / (1000 * 60 * 60 * 24 * 365)) : null;
+
     const person = await tenantPrisma.person.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(req.params.id) },
       data: {
         type,
         isClient,
@@ -122,67 +173,77 @@ router.put('/persons/:id', async (req, res) => {
         addressCity,
         addressState,
         addressCountry,
-        bankDetails,
+        bankDetails: bankDetails ? JSON.parse(bankDetails) : null,
         observations,
-        attachment,
+        attachment: req.files?.attachment ? req.files.attachment[0].path : null,
         updatedAt: new Date(),
       },
     });
 
-    await tenantPrisma.$disconnect();
     res.json(person);
   } catch (error) {
     console.error('Erro ao atualizar pessoa:', error);
     res.status(400).json({ error: `Erro ao atualizar pessoa: ${error.message}` });
+  } finally {
+    if (tenantPrisma) {
+      await tenantPrisma.$disconnect();
+    }
   }
 });
 
-// Excluir uma pessoa
 router.delete('/persons/:id', async (req, res) => {
-  const { id } = req.params;
-
+  let tenantPrisma;
   try {
     const schemaName = `tenant_${req.user.tenantId}_${req.user.cnpj.replace(/[^0-9]/g, '')}`;
-    console.log(`Usando schema: ${schemaName}`);
-
-    const tenantPrisma = new PrismaClient({
+    tenantPrisma = new PrismaClient({
       datasources: { db: { url: `${process.env.DATABASE_URL}&schema=${schemaName}` } },
     });
 
-    await tenantPrisma.person.delete({ where: { id: parseInt(id) } });
-    await tenantPrisma.$disconnect();
+    await tenantPrisma.person.delete({
+      where: { id: parseInt(req.params.id) },
+    });
+
     res.status(204).send();
   } catch (error) {
     console.error('Erro ao excluir pessoa:', error);
     res.status(400).json({ error: `Erro ao excluir pessoa: ${error.message}` });
+  } finally {
+    if (tenantPrisma) {
+      await tenantPrisma.$disconnect();
+    }
   }
 });
 
-// Listar aniversariantes
 router.get('/reminders/birthdays', async (req, res) => {
+  let tenantPrisma;
   try {
     const schemaName = `tenant_${req.user.tenantId}_${req.user.cnpj.replace(/[^0-9]/g, '')}`;
-    console.log(`Usando schema: ${schemaName}`);
-
-    const tenantPrisma = new PrismaClient({
+    tenantPrisma = new PrismaClient({
       datasources: { db: { url: `${process.env.DATABASE_URL}&schema=${schemaName}` } },
     });
 
     const today = new Date();
-    const persons = await tenantPrisma.person.findMany({
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const birthdays = await tenantPrisma.person.findMany({
       where: {
         birthDate: {
-          gte: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
-          lte: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
+          gte: today,
+          lt: tomorrow,
         },
       },
     });
 
-    await tenantPrisma.$disconnect();
-    res.json(persons);
+    res.json(birthdays);
   } catch (error) {
     console.error('Erro ao listar aniversariantes:', error);
     res.status(500).json({ error: 'Erro ao listar aniversariantes' });
+  } finally {
+    if (tenantPrisma) {
+      await tenantPrisma.$disconnect();
+    }
   }
 });
 

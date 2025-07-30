@@ -3,10 +3,12 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const salesRoutes = require('./routes/sales');
+const multer = require('multer');
 const { addBirthdayReminder } = require('./services/reminderQueue');
 require('dotenv').config();
 
 const app = express();
+const upload = multer({ dest: 'uploads/' });
 const port = process.env.PORT || 4000;
 
 app.use(cors({
@@ -18,7 +20,10 @@ app.use(express.json());
 
 // Rotas
 app.use('/auth', authRoutes);
-app.use('/admin', adminRoutes);
+app.use('/admin', upload.fields([
+  { name: 'attachment', maxCount: 1 },
+  { name: 'data', maxCount: 1 }
+]), adminRoutes);
 app.use('/sales', salesRoutes);
 
 // Agendar lembretes diários

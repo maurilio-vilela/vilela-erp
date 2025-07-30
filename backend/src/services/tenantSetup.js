@@ -11,7 +11,7 @@ const { Client } = require('pg');
        console.log('Conexão estabelecida com sucesso.');
 
        const schemaName = `tenant_${tenantId}_${tenantCnpj.replace(/[^0-9]/g, '')}`;
-       console.log(`Criando schema ${schemaName}`);
+       console.log(`Criando schema "${schemaName}"`);
 
        // Iniciar transação
        await client.query('BEGIN');
@@ -40,30 +40,30 @@ const { Client } = require('pg');
          CREATE TABLE IF NOT EXISTS "${schemaName}"."Person" (
            id SERIAL PRIMARY KEY,
            type VARCHAR(2) NOT NULL,
-           isClient BOOLEAN DEFAULT FALSE,
-           isSupplier BOOLEAN DEFAULT FALSE,
-           isEmployee BOOLEAN DEFAULT FALSE,
+           "isClient" BOOLEAN DEFAULT FALSE,
+           "isSupplier" BOOLEAN DEFAULT FALSE,
+           "isEmployee" BOOLEAN DEFAULT FALSE,
            name VARCHAR(255) NOT NULL,
            surname VARCHAR(255),
-           cpfCnpj VARCHAR(14) UNIQUE NOT NULL,
-           birthDate DATE,
+           "cpfCnpj" VARCHAR(14) UNIQUE NOT NULL,
+           "birthDate" TIMESTAMP,
            age INTEGER,
            gender VARCHAR(10),
            email VARCHAR(255),
            phone VARCHAR(20),
-           addressCep VARCHAR(10),
-           addressStreet VARCHAR(255),
-           addressNumber VARCHAR(20),
-           addressComplement VARCHAR(255),
-           addressNeighborhood VARCHAR(255),
-           addressCity VARCHAR(255),
-           addressState VARCHAR(2),
-           addressCountry VARCHAR(100) DEFAULT 'Brasil',
-           bankDetails JSONB,
+           "addressCep" VARCHAR(10),
+           "addressStreet" VARCHAR(255),
+           "addressNumber" VARCHAR(20),
+           "addressComplement" VARCHAR(255),
+           "addressNeighborhood" VARCHAR(255),
+           "addressCity" VARCHAR(255),
+           "addressState" VARCHAR(2),
+           "addressCountry" VARCHAR(100) DEFAULT 'Brasil',
+           "bankDetails" JSONB,
            observations TEXT,
            attachment VARCHAR(255),
-           createdAt TIMESTAMP DEFAULT NOW(),
-           updatedAt TIMESTAMP DEFAULT NOW()
+           "createdAt" TIMESTAMP DEFAULT NOW(),
+           "updatedAt" TIMESTAMP DEFAULT NOW()
          )
        `);
        console.log(`Tabela "${schemaName}"."Person" criada`);
@@ -80,6 +80,19 @@ const { Client } = require('pg');
        console.log(`Verificação: Tabela "${schemaName}"."Person" existe? ${personTableExists}`);
        if (!personTableExists) {
          throw new Error(`Tabela "${schemaName}"."Person" não foi criada`);
+       }
+
+       // Verificar colunas da tabela Person
+       const columnsResult = await client.query(`
+         SELECT column_name 
+         FROM information_schema.columns 
+         WHERE table_schema = $1 
+         AND table_name = 'Person';
+       `, [schemaName]);
+       const columns = columnsResult.rows.map(row => row.column_name);
+       console.log(`Colunas da tabela "${schemaName}"."Person":`, columns);
+       if (!columns.includes('isClient')) {
+         throw new Error(`Coluna "isClient" não encontrada na tabela "${schemaName}"."Person"`);
        }
 
        // Confirmar transação
@@ -99,8 +112,8 @@ const { Client } = require('pg');
                category VARCHAR(255),
                stock INTEGER DEFAULT 0,
                expiration TIMESTAMP,
-               createdAt TIMESTAMP DEFAULT NOW(),
-               updatedAt TIMESTAMP DEFAULT NOW()
+               "createdAt" TIMESTAMP DEFAULT NOW(),
+               "updatedAt" TIMESTAMP DEFAULT NOW()
              )
            `
          },
@@ -109,13 +122,13 @@ const { Client } = require('pg');
            query: `
              CREATE TABLE IF NOT EXISTS "${schemaName}"."Sale" (
                id SERIAL PRIMARY KEY,
-               personId INTEGER REFERENCES "${schemaName}"."Person"(id),
-               userId INTEGER NOT NULL,
+               "personId" INTEGER REFERENCES "${schemaName}"."Person"(id),
+               "userId" INTEGER NOT NULL,
                status VARCHAR(20) NOT NULL,
                total FLOAT NOT NULL,
                discount FLOAT DEFAULT 0,
-               createdAt TIMESTAMP DEFAULT NOW(),
-               updatedAt TIMESTAMP DEFAULT NOW()
+               "createdAt" TIMESTAMP DEFAULT NOW(),
+               "updatedAt" TIMESTAMP DEFAULT NOW()
              )
            `
          },
@@ -124,11 +137,11 @@ const { Client } = require('pg');
            query: `
              CREATE TABLE IF NOT EXISTS "${schemaName}"."SaleItem" (
                id SERIAL PRIMARY KEY,
-               saleId INTEGER REFERENCES "${schemaName}"."Sale"(id),
-               productId INTEGER REFERENCES "${schemaName}"."Product"(id),
+               "saleId" INTEGER REFERENCES "${schemaName}"."Sale"(id),
+               "productId" INTEGER REFERENCES "${schemaName}"."Product"(id),
                quantity INTEGER NOT NULL,
-               unitPrice FLOAT NOT NULL,
-               createdAt TIMESTAMP DEFAULT NOW()
+               "unitPrice" FLOAT NOT NULL,
+               "createdAt" TIMESTAMP DEFAULT NOW()
              )
            `
          },
@@ -137,11 +150,11 @@ const { Client } = require('pg');
            query: `
              CREATE TABLE IF NOT EXISTS "${schemaName}"."Commission" (
                id SERIAL PRIMARY KEY,
-               userId INTEGER NOT NULL,
-               saleId INTEGER REFERENCES "${schemaName}"."Sale"(id),
+               "userId" INTEGER NOT NULL,
+               "saleId" INTEGER REFERENCES "${schemaName}"."Sale"(id),
                percentage FLOAT NOT NULL,
                amount FLOAT NOT NULL,
-               createdAt TIMESTAMP DEFAULT NOW()
+               "createdAt" TIMESTAMP DEFAULT NOW()
              )
            `
          },
@@ -151,14 +164,14 @@ const { Client } = require('pg');
              CREATE TABLE IF NOT EXISTS "${schemaName}"."FinancialTransaction" (
                id SERIAL PRIMARY KEY,
                type VARCHAR(20) NOT NULL,
-               personId INTEGER REFERENCES "${schemaName}"."Person"(id),
+               "personId" INTEGER REFERENCES "${schemaName}"."Person"(id),
                amount FLOAT NOT NULL,
-               dueDate TIMESTAMP NOT NULL,
+               "dueDate" TIMESTAMP NOT NULL,
                status VARCHAR(20) NOT NULL,
                category VARCHAR(255),
-               costCenter VARCHAR(255),
-               createdAt TIMESTAMP DEFAULT NOW(),
-               updatedAt TIMESTAMP DEFAULT NOW()
+               "costCenter" VARCHAR(255),
+               "createdAt" TIMESTAMP DEFAULT NOW(),
+               "updatedAt" TIMESTAMP DEFAULT NOW()
              )
            `
          },
@@ -168,12 +181,12 @@ const { Client } = require('pg');
              CREATE TABLE IF NOT EXISTS "${schemaName}"."Invoice" (
                id SERIAL PRIMARY KEY,
                type VARCHAR(20) NOT NULL,
-               personId INTEGER REFERENCES "${schemaName}"."Person"(id),
+               "personId" INTEGER REFERENCES "${schemaName}"."Person"(id),
                number VARCHAR(255) UNIQUE NOT NULL,
                amount FLOAT NOT NULL,
-               issueDate TIMESTAMP NOT NULL,
+               "issueDate" TIMESTAMP NOT NULL,
                xml TEXT,
-               createdAt TIMESTAMP DEFAULT NOW()
+               "createdAt" TIMESTAMP DEFAULT NOW()
              )
            `
          },
@@ -184,11 +197,11 @@ const { Client } = require('pg');
                id SERIAL PRIMARY KEY,
                title VARCHAR(255) NOT NULL,
                description TEXT,
-               userId INTEGER NOT NULL,
+               "userId" INTEGER NOT NULL,
                status VARCHAR(20) NOT NULL,
-               dueDate TIMESTAMP,
-               createdAt TIMESTAMP DEFAULT NOW(),
-               updatedAt TIMESTAMP DEFAULT NOW()
+               "dueDate" TIMESTAMP,
+               "createdAt" TIMESTAMP DEFAULT NOW(),
+               "updatedAt" TIMESTAMP DEFAULT NOW()
              )
            `
          }
