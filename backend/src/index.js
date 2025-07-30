@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const salesRoutes = require('./routes/sales');
+const { addBirthdayReminder } = require('./services/reminderQueue');
 require('dotenv').config();
 
 const app = express();
@@ -17,6 +19,17 @@ app.use(express.json());
 // Rotas
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
+app.use('/sales', salesRoutes);
+
+// Agendar lembretes diários
+setInterval(async () => {
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+  const tenants = await prisma.tenant.findMany();
+  for (const tenant of tenants) {
+    await addBirthdayReminder(tenant.id);
+  }
+}, 24 * 60 * 60 * 1000); // Executa diariamente
 
 // Middleware de erro global
 app.use((err, req, res, next) => {

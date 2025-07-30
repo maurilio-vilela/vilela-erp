@@ -26,12 +26,14 @@ model User {
   tenantId  Int
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   personId  Int?     @unique
-  person    Person?  @relation(fields: [personId], references: [id])
+  person    Person?  @relation("UserToPerson", fields: [personId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  sales     Sale[]   // Relação com vendas
+  commissions Commission[] // Relação com comissões
+  tasks     Task[]   // Relação com tarefas
 }
 
-// Tabela unificada para Clientes, Fornecedores e Colaboradores (por tenant)
 model Person {
   id            Int      @id @default(autoincrement())
   type          String   // "PF" ou "PJ"
@@ -59,5 +61,96 @@ model Person {
   attachment    String?  // Caminho do arquivo no servidor
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  user          User?    @relation(fields: [id], references: [personId])
+  user          User?    @relation("UserToPerson")
+  sales         Sale[]   // Relação com vendas
+  financialTransactions FinancialTransaction[] // Relação com transações financeiras
+  invoices      Invoice[] // Relação com notas fiscais
+}
+
+model Sale {
+  id          Int      @id @default(autoincrement())
+  personId    Int
+  person      Person   @relation(fields: [personId], references: [id])
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  status      String   // "pending", "approved", "completed"
+  total       Float
+  discount    Float?   @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       SaleItem[]
+  commissions Commission[]
+}
+
+model SaleItem {
+  id          Int      @id @default(autoincrement())
+  saleId      Int
+  sale        Sale     @relation(fields: [saleId], references: [id])
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  unitPrice   Float
+  createdAt   DateTime @default(now())
+}
+
+model Commission {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  saleId      Int
+  sale        Sale     @relation(fields: [saleId], references: [id])
+  percentage  Float
+  amount      Float
+  createdAt   DateTime @default(now())
+}
+
+model FinancialTransaction {
+  id            Int      @id @default(autoincrement())
+  type          String   // "receivable", "payable"
+  personId      Int?
+  person        Person?  @relation(fields: [personId], references: [id])
+  amount        Float
+  dueDate       DateTime
+  status        String   // "open", "paid", "overdue"
+  category      String?
+  costCenter    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Invoice {
+  id          Int      @id @default(autoincrement())
+  type        String   // "NFS-e", "NF-e", "NFC-e"
+  personId    Int?
+  person      Person?  @relation(fields: [personId], references: [id])
+  number      String   @unique
+  amount      Float
+  issueDate   DateTime
+  xml         String?
+  createdAt   DateTime @default(now())
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  price       Float
+  category    String?
+  stock       Int      @default(0)
+  expiration  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  saleItems   SaleItem[]
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  status      String   // "todo", "inprogress", "done"
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
