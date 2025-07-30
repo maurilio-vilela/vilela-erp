@@ -1,0 +1,18 @@
+.modal-dialog {
+  max-width: 70% !important;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+h5 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.form-check-inline {
+  margin-right: 1rem;
+}

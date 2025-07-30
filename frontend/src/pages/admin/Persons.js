@@ -1,5 +1,7 @@
+import '../../components/Persons.css';
 import React, { useState, useEffect } from 'react';
-import { Form, Button, Container, Alert, Table, Dropdown, Modal } from 'react-bootstrap';
+import { Form, Button, Container, Alert, Table, Dropdown, Modal, Row, Col } from 'react-bootstrap';
+import InputMask from 'react-input-mask';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 
@@ -10,6 +12,7 @@ const Persons = () => {
   const [isEmployee, setIsEmployee] = useState(false);
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [cpfCnpj, setCpfCnpj] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState('');
@@ -36,6 +39,15 @@ const Persons = () => {
   const [showModal, setShowModal] = useState(false);
   const { token } = useSelector((state) => state.auth);
 
+  // Lista de estados brasileiros
+  const brazilianStates = [
+    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+    'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+  ];
+
+  // Lista de países (exemplo simplificado)
+  const countries = ['Brasil', 'Argentina', 'Chile', 'Uruguai', 'Paraguai', 'Outros'];
+
   useEffect(() => {
     fetchPersons();
   }, [token]);
@@ -59,14 +71,16 @@ const Persons = () => {
     formData.append('isClient', isClient);
     formData.append('isSupplier', isSupplier);
     formData.append('isEmployee', isEmployee);
-    formData.append('name', name);
-    formData.append('surname', surname);
-    formData.append('cpfCnpj', cpfCnpj);
-    if (birthDate) formData.append('birthDate', birthDate);
-    if (gender) formData.append('gender', gender);
+    formData.append('name', type === 'PF' ? name : companyName);
+    if (type === 'PF') {
+      formData.append('surname', surname);
+    }
+    formData.append('cpfCnpj', cpfCnpj.replace(/[^0-9]/g, ''));
+    if (birthDate && type === 'PF') formData.append('birthDate', birthDate);
+    if (gender && type === 'PF') formData.append('gender', gender);
     if (email) formData.append('email', email);
     if (phone) formData.append('phone', phone);
-    if (addressCep) formData.append('addressCep', addressCep);
+    if (addressCep) formData.append('addressCep', addressCep.replace(/[^0-9]/g, ''));
     if (addressStreet) formData.append('addressStreet', addressStreet);
     if (addressNumber) formData.append('addressNumber', addressNumber);
     if (addressComplement) formData.append('addressComplement', addressComplement);
@@ -99,7 +113,7 @@ const Persons = () => {
       fetchPersons();
     } catch (err) {
       console.error('Erro no cadastro:', err);
-      setError('Erro ao salvar cadastro');
+      setError(err.response?.data?.error || 'Erro ao salvar cadastro');
       setSuccess('');
     }
   };
@@ -110,7 +124,8 @@ const Persons = () => {
     setIsClient(person.isClient);
     setIsSupplier(person.isSupplier);
     setIsEmployee(person.isEmployee);
-    setName(person.name);
+    setName(person.type === 'PF' ? person.name : '');
+    setCompanyName(person.type === 'PJ' ? person.name : '');
     setSurname(person.surname || '');
     setCpfCnpj(person.cpfCnpj);
     setBirthDate(person.birthDate ? person.birthDate.split('T')[0] : '');
@@ -171,6 +186,7 @@ const Persons = () => {
     setIsSupplier(false);
     setIsEmployee(false);
     setName('');
+    setCompanyName('');
     setSurname('');
     setCpfCnpj('');
     setBirthDate('');
@@ -201,208 +217,325 @@ const Persons = () => {
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
-      <Modal show={showModal} onHide={resetForm}>
+      <Modal show={showModal} onHide={resetForm} size="lg" style={{ maxWidth: '70%' }}>
         <Modal.Header closeButton>
           <Modal.Title>{editingPerson ? 'Editar Cadastro' : 'Novo Cadastro'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleSubmit}>
-            <Form.Group controlId="type">
-              <Form.Label>Tipo de Pessoa</Form.Label>
-              <Form.Select value={type} onChange={(e) => setType(e.target.value)}>
-                <option value="PF">Pessoa Física</option>
-                <option value="PJ">Pessoa Jurídica</option>
-              </Form.Select>
-            </Form.Group>
-            <Form.Group controlId="roles">
-              <Form.Label>Tipo de Cadastro</Form.Label>
-              <Form.Check
-                type="checkbox"
-                label="Cliente"
-                checked={isClient}
-                onChange={(e) => setIsClient(e.target.checked)}
-              />
-              <Form.Check
-                type="checkbox"
-                label="Fornecedor"
-                checked={isSupplier}
-                onChange={(e) => setIsSupplier(e.target.checked)}
-              />
-              <Form.Check
-                type="checkbox"
-                label="Colaborador"
-                checked={isEmployee}
-                onChange={(e) => setIsEmployee(e.target.checked)}
-              />
-            </Form.Group>
-            <Form.Group controlId="name">
-              <Form.Label>Nome</Form.Label>
-              <Form.Control
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </Form.Group>
-            {type === 'PF' && (
-              <Form.Group controlId="surname">
-                <Form.Label>Sobrenome</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={surname}
-                  onChange={(e) => setSurname(e.target.value)}
-                  required
-                />
-              </Form.Group>
-            )}
-            <Form.Group controlId="cpfCnpj">
-              <Form.Label>{type === 'PF' ? 'CPF' : 'CNPJ'}</Form.Label>
-              <Form.Control
-                type="text"
-                value={cpfCnpj}
-                onChange={(e) => setCpfCnpj(e.target.value)}
-                required
-              />
-            </Form.Group>
-            {type === 'PF' && (
-              <>
-                <Form.Group controlId="birthDate">
-                  <Form.Label>Data de Nascimento</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                  />
-                </Form.Group>
-                <Form.Group controlId="gender">
-                  <Form.Label>Sexo</Form.Label>
-                  <Form.Select value={gender} onChange={(e) => setGender(e.target.value)}>
-                    <option value="">Selecione</option>
-                    <option value="M">Masculino</option>
-                    <option value="F">Feminino</option>
-                    <option value="Other">Outro</option>
+            {/* Grupo: Tipo de Cadastro */}
+            <h5>Tipo de Cadastro</h5>
+            <Row>
+              <Col md={4}>
+                <Form.Group controlId="type">
+                  <Form.Label>Tipo de Pessoa</Form.Label>
+                  <Form.Select value={type} onChange={(e) => setType(e.target.value)}>
+                    <option value="PF">Pessoa Física</option>
+                    <option value="PJ">Pessoa Jurídica</option>
                   </Form.Select>
                 </Form.Group>
-              </>
+              </Col>
+              <Col md={8}>
+                <Form.Label>Funções</Form.Label>
+                <div>
+                  <Form.Check
+                    inline
+                    type="checkbox"
+                    label="Cliente"
+                    checked={isClient}
+                    onChange={(e) => setIsClient(e.target.checked)}
+                  />
+                  <Form.Check
+                    inline
+                    type="checkbox"
+                    label="Fornecedor"
+                    checked={isSupplier}
+                    onChange={(e) => setIsSupplier(e.target.checked)}
+                  />
+                  <Form.Check
+                    inline
+                    type="checkbox"
+                    label="Colaborador"
+                    checked={isEmployee}
+                    onChange={(e) => setIsEmployee(e.target.checked)}
+                  />
+                </div>
+              </Col>
+            </Row>
+
+            {/* Grupo: Dados Pessoais (PF) ou Dados da Empresa (PJ) */}
+            <h5 className="mt-4">{type === 'PF' ? 'Dados Pessoais' : 'Dados da Empresa'}</h5>
+            <Row>
+              {type === 'PF' ? (
+                <>
+                  <Col md={4}>
+                    <Form.Group controlId="name">
+                      <Form.Label>Nome</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="surname">
+                      <Form.Label>Sobrenome</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={surname}
+                        onChange={(e) => setSurname(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </>
+              ) : (
+                <>
+                  <Col md={4}>
+                    <Form.Group controlId="name">
+                      <Form.Label>Razão Social</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="companyName">
+                      <Form.Label>Nome Fantasia</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </>
+              )}
+              <Col md={4}>
+                <Form.Group controlId="cpfCnpj">
+                  <Form.Label>{type === 'PF' ? 'CPF' : 'CNPJ'}</Form.Label>
+                  <InputMask
+                    mask={type === 'PF' ? '999.999.999-99' : '99.999.999/9999-99'}
+                    value={cpfCnpj}
+                    onChange={(e) => setCpfCnpj(e.target.value)}
+                  >
+                    {(inputProps) => <Form.Control {...inputProps} required />}
+                  </InputMask>
+                </Form.Group>
+              </Col>
+            </Row>
+            {type === 'PF' && (
+              <Row>
+                <Col md={4}>
+                  <Form.Group controlId="birthDate">
+                    <Form.Label>Data de Nascimento</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={birthDate}
+                      onChange={(e) => setBirthDate(e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group controlId="gender">
+                    <Form.Label>Sexo</Form.Label>
+                    <Form.Select value={gender} onChange={(e) => setGender(e.target.value)}>
+                      <option value="">Selecione</option>
+                      <option value="M">Masculino</option>
+                      <option value="F">Feminino</option>
+                      <option value="Other">Outro</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
             )}
-            <Form.Group controlId="email">
-              <Form.Label>E-mail</Form.Label>
-              <Form.Control
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="phone">
-              <Form.Label>Telefone</Form.Label>
-              <Form.Control
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="addressCep">
-              <Form.Label>CEP</Form.Label>
-              <Form.Control
-                type="text"
-                value={addressCep}
-                onChange={(e) => setAddressCep(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="addressStreet">
-              <Form.Label>Rua</Form.Label>
-              <Form.Control
-                type="text"
-                value={addressStreet}
-                onChange={(e) => setAddressStreet(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="addressNumber">
-              <Form.Label>Número</Form.Label>
-              <Form.Control
-                type="text"
-                value={addressNumber}
-                onChange={(e) => setAddressNumber(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="addressComplement">
-              <Form.Label>Complemento</Form.Label>
-              <Form.Control
-                type="text"
-                value={addressComplement}
-                onChange={(e) => setAddressComplement(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="addressNeighborhood">
-              <Form.Label>Bairro</Form.Label>
-              <Form.Control
-                type="text"
-                value={addressNeighborhood}
-                onChange={(e) => setAddressNeighborhood(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="addressCity">
-              <Form.Label>Cidade</Form.Label>
-              <Form.Control
-                type="text"
-                value={addressCity}
-                onChange={(e) => setAddressCity(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="addressState">
-              <Form.Label>Estado</Form.Label>
-              <Form.Control
-                type="text"
-                value={addressState}
-                onChange={(e) => setAddressState(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="addressCountry">
-              <Form.Label>País</Form.Label>
-              <Form.Control
-                type="text"
-                value={addressCountry}
-                onChange={(e) => setAddressCountry(e.target.value)}
-              />
-            </Form.Group>
+            <Row>
+              <Col md={6}>
+                <Form.Group controlId="email">
+                  <Form.Label>E-mail</Form.Label>
+                  <Form.Control
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="phone">
+                  <Form.Label>Telefone</Form.Label>
+                  <InputMask
+                    mask="(99) 99999-9999"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  >
+                    {(inputProps) => <Form.Control {...inputProps} />}
+                  </InputMask>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {/* Grupo: Endereço */}
+            <h5 className="mt-4">Endereço</h5>
+            <Row>
+              <Col md={4}>
+                <Form.Group controlId="addressCep">
+                  <Form.Label>CEP</Form.Label>
+                  <InputMask
+                    mask="99999-999"
+                    value={addressCep}
+                    onChange={(e) => setAddressCep(e.target.value)}
+                  >
+                    {(inputProps) => <Form.Control {...inputProps} />}
+                  </InputMask>
+                </Form.Group>
+              </Col>
+              <Col md={8}>
+                <Form.Group controlId="addressStreet">
+                  <Form.Label>Rua</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addressStreet}
+                    onChange={(e) => setAddressStreet(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={3}>
+                <Form.Group controlId="addressNumber">
+                  <Form.Label>Número</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addressNumber}
+                    onChange={(e) => setAddressNumber(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group controlId="addressComplement">
+                  <Form.Label>Complemento</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addressComplement}
+                    onChange={(e) => setAddressComplement(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="addressNeighborhood">
+                  <Form.Label>Bairro</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addressNeighborhood}
+                    onChange={(e) => setAddressNeighborhood(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={4}>
+                <Form.Group controlId="addressCity">
+                  <Form.Label>Cidade</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addressCity}
+                    onChange={(e) => setAddressCity(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group controlId="addressState">
+                  <Form.Label>Estado</Form.Label>
+                  <Form.Select
+                    value={addressState}
+                    onChange={(e) => setAddressState(e.target.value)}
+                  >
+                    <option value="">Selecione</option>
+                    {brazilianStates.map((state) => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group controlId="addressCountry">
+                  <Form.Label>País</Form.Label>
+                  <Form.Select
+                    value={addressCountry}
+                    onChange={(e) => setAddressCountry(e.target.value)}
+                  >
+                    {countries.map((country) => (
+                      <option key={country} value={country}>{country}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {/* Grupo: Dados Bancários */}
             {(isSupplier || isEmployee) && (
               <>
-                <Form.Group controlId="bankDescription">
-                  <Form.Label>Descrição Bancária</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={bankDescription}
-                    onChange={(e) => setBankDescription(e.target.value)}
-                  />
-                </Form.Group>
-                <Form.Group controlId="bankKeyType">
-                  <Form.Label>Tipo de Chave Pix</Form.Label>
-                  <Form.Select value={bankKeyType} onChange={(e) => setBankKeyType(e.target.value)}>
-                    <option value="">Selecione</option>
-                    <option value="CPF">CPF</option>
-                    <option value="CNPJ">CNPJ</option>
-                    <option value="Email">E-mail</option>
-                    <option value="Phone">Telefone</option>
-                  </Form.Select>
-                </Form.Group>
-                <Form.Group controlId="bankPixKey">
-                  <Form.Label>Chave Pix</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={bankPixKey}
-                    onChange={(e) => setBankPixKey(e.target.value)}
-                  />
-                </Form.Group>
-                <Form.Group controlId="bankName">
-                  <Form.Label>Banco</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                  />
-                </Form.Group>
+                <h5 className="mt-4">Dados Bancários</h5>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group controlId="bankDescription">
+                      <Form.Label>Descrição Bancária</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={bankDescription}
+                        onChange={(e) => setBankDescription(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group controlId="bankName">
+                      <Form.Label>Banco</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group controlId="bankKeyType">
+                      <Form.Label>Tipo de Chave Pix</Form.Label>
+                      <Form.Select
+                        value={bankKeyType}
+                        onChange={(e) => setBankKeyType(e.target.value)}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="CPF">CPF</option>
+                        <option value="CNPJ">CNPJ</option>
+                        <option value="Email">E-mail</option>
+                        <option value="Phone">Telefone</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group controlId="bankPixKey">
+                      <Form.Label>Chave Pix</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={bankPixKey}
+                        onChange={(e) => setBankPixKey(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
               </>
             )}
+
+            {/* Observações e Anexo */}
+            <h5 className="mt-4">Outros</h5>
             <Form.Group controlId="observations">
               <Form.Label>Observações</Form.Label>
               <Form.Control
@@ -412,13 +545,14 @@ const Persons = () => {
                 onChange={(e) => setObservations(e.target.value)}
               />
             </Form.Group>
-            <Form.Group controlId="attachment">
+            <Form.Group controlId="attachment" className="mt-3">
               <Form.Label>Anexo</Form.Label>
               <Form.Control
                 type="file"
                 onChange={(e) => setAttachment(e.target.files[0])}
               />
             </Form.Group>
+
             <Button variant="primary" type="submit" className="mt-3">
               {editingPerson ? 'Atualizar' : 'Cadastrar'}
             </Button>
@@ -443,7 +577,7 @@ const Persons = () => {
             <tr key={person.id}>
               <td>{`${person.name} ${person.surname || ''}`}</td>
               <td>{person.cpfCnpj}</td>
-              <td>{person.type}</td>
+              <td>{person.type === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}</td>
               <td>
                 {person.isClient && 'Cliente'}
                 {person.isClient && person.isSupplier && ' / '}

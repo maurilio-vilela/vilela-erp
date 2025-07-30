@@ -12,7 +12,12 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/admin/persons" element={<Persons />} />
         <Route path="/admin/reminders" element={<Reminders />} />
-        <Route path="/" element={<div>Home</div>} />
+        <Route path="/" element={
+          <div>
+            Home
+            <a href='http://localhost:3001/admin/persons'> Cadastro de Pessoas</a>
+            </div>
+          } />
       </Routes>
     </Router>
   );

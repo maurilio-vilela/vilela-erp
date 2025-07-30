@@ -6,14 +6,15 @@ const connection = new IORedis({
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: process.env.REDIS_PORT || 6379,
   maxRetriesPerRequest: null,
-//  password: process.env.REDIS_PASSWORD || undefined // Adicione se usar autenticação
+  password: process.env.REDIS_PASSWORD || undefined
 });
 
 const reminderQueue = new Queue('reminders', { connection });
 
-const addBirthdayReminder = async (tenantId) => {
+const addBirthdayReminder = async (tenantId, tenantCnpj) => {
+  const schemaName = `tenant_${tenantId}_${tenantCnpj.replace(/[^0-9]/g, '')}`;
   const prisma = new PrismaClient({
-    datasources: { db: { url: `${process.env.DATABASE_URL}&schema=tenant_${tenantId}` } },
+    datasources: { db: { url: `${process.env.DATABASE_URL}&schema=${schemaName}` } },
   });
   const today = new Date();
   const birthdays = await prisma.person.findMany({
@@ -28,6 +29,7 @@ const addBirthdayReminder = async (tenantId) => {
   for (const person of birthdays) {
     await reminderQueue.add('send-birthday', {
       tenantId,
+      tenantCnpj,
       name: person.name,
       email: person.email,
     });
