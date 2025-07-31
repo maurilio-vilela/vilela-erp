@@ -12,7 +12,7 @@ const upload = multer({ dest: 'uploads/' });
 const port = process.env.PORT || 4000;
 
 app.use(cors({
-  origin: 'http://localhost:3001',
+  origin: 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -30,9 +30,15 @@ app.use('/sales', salesRoutes);
 setInterval(async () => {
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
-  const tenants = await prisma.tenant.findMany();
-  for (const tenant of tenants) {
-    await addBirthdayReminder(tenant.id);
+  try {
+    const tenants = await prisma.tenant.findMany();
+    for (const tenant of tenants) {
+      await addBirthdayReminder(tenant.id);
+    }
+  } catch (error) {
+    console.error('Erro ao agendar lembretes:', error);
+  } finally {
+    await prisma.$disconnect();
   }
 }, 24 * 60 * 60 * 1000); // Executa diariamente
 
