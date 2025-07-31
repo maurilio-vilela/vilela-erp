@@ -1,4 +1,4 @@
-.modal-dialog {
+.modal-70 {
   max-width: 70% !important;
 }
 
@@ -9,10 +9,34 @@
 h5 {
   margin-top: 1.5rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--text);
   padding-bottom: 0.5rem;
 }
 
 .form-check-inline {
   margin-right: 1rem;
+}
+
+.table {
+  background-color: var(--background);
+  color: var(--text);
+}
+
+.table th, .table td {
+  border-color: var(--text);
+}
+
+.alert {
+  background-color: var(--secondary);
+  color: var(--text);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--secondary);
+  border-color: var(--secondary);
 }
