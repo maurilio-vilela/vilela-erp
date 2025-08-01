@@ -40,9 +40,11 @@ model Person {
   isClient      Boolean  @default(false)
   isSupplier    Boolean  @default(false)
   isEmployee    Boolean  @default(false)
+  nationality   String   @default("Brasileira")
   name          String
   surname       String?
   cpfCnpj       String   @unique
+  passport      String?
   birthDate     DateTime?
   age           Int?     // Calculado automaticamente no backend
   gender        String?  // "M", "F", "Other"
