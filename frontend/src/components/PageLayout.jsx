@@ -3,7 +3,7 @@ import { Container, Navbar, Nav, Button } from 'react-bootstrap';
 import { FaBars, FaUser, FaSignOutAlt, FaSun, FaMoon, FaUsers, FaTachometerAlt, FaShoppingCart } from 'react-icons/fa';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../store/authSlice';
+import { clearUser } from '../redux/authSlice';
 import './PageLayout.css';
 
 const PageLayout = ({ children, pageTitle }) => {
@@ -27,7 +27,7 @@ const PageLayout = ({ children, pageTitle }) => {
   };
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(clearUser());
     navigate('/login');
   };
 

@@ -5,11 +5,14 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Persons from './pages/admin/Persons';
 import Reminders from './pages/admin/Reminders';
+import Dashboard from './pages/admin/Dashboard';
 import PageLayout from './components/PageLayout';
+import NotFound from './pages/NotFound';
 
 const ProtectedRoute = ({ children }) => {
   const { token } = useSelector((state) => state.auth);
-  return token ? children : <Navigate to="/login" />;
+  console.log('ProtectedRoute - Token:', token); // Depuração (remover em produção)
+  return token ? children : <Navigate to="/login" replace />;
 };
 
 const App = () => {
@@ -43,23 +46,16 @@ const App = () => {
           element={
             <ProtectedRoute>
               <PageLayout pageTitle="Dashboard">
-                <h2>Dashboard</h2>
-                <p>Bem-vindo ao Vilela ERP!</p>
+                <Dashboard />
               </PageLayout>
             </ProtectedRoute>
           }
         />
         <Route
           path="/"
-          element={
-            <ProtectedRoute>
-              <PageLayout pageTitle="Home">
-                <h2>Home</h2>
-                <p>Bem-vindo ao Vilela ERP!</p>
-              </PageLayout>
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/admin/dashboard" replace />}
         />
+        <Route path="*" element={<NotFound />} /> {/* Fallback para 404 */}
       </Routes>
     </Router>
   );
